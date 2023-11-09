@@ -11,7 +11,7 @@ class ServerTest(FlaskTest):
 
     @dynamic_test
     def test_get_list_200(self):
-        hw = requests.get(self.get_url('/'))
+        hw = requests.get(self.get_url('/tasks'))
         try:
             json.loads(hw.content)
         except Exception:
@@ -27,7 +27,7 @@ class ServerTest(FlaskTest):
 
     @dynamic_test
     def test_get_non_exiting_error(self):
-        hw = requests.get(self.get_url('/1'))
+        hw = requests.get(self.get_url('/tasks/1'))
         try:
             json.loads(hw.content)
         except Exception:
@@ -43,7 +43,7 @@ class ServerTest(FlaskTest):
 
     @dynamic_test
     def test_post_201(self):
-        hw: Response = requests.post(self.get_url('/'), json={'name': 'task 1', 'time': '1h'})
+        hw: Response = requests.post(self.get_url('/tasks'), json={'name': 'task 1', 'time': '1h'})
 
         try:
             json.loads(hw.content)
@@ -62,9 +62,9 @@ class ServerTest(FlaskTest):
 
     @dynamic_test
     def test_get_2_objects_200(self):
-        requests.post(self.get_url('/'), json={'name': 'task 2', 'time': '3h'})
+        requests.post(self.get_url('/tasks'), json={'name': 'task 2', 'time': '3h'})
 
-        hw: Response = requests.get(self.get_url('/'))
+        hw: Response = requests.get(self.get_url('/tasks'))
         try:
             json.loads(hw.content)
         except Exception:
