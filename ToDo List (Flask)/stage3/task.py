@@ -47,12 +47,18 @@ class UserSchema(Schema):
     )
 
 
+class UserSchemaOut(Schema):
+    id = fields.Int(dump_only=True)
+    email = fields.Str()
+
+
+
 todo_schema = TODOEntry()
 todo_schema_list = TODOEntryOut(many=True)
 
 
 user_schema = UserSchema()
-
+user_schema_out = UserSchemaOut()
 
 class Users(db.Model):
     __tablename__ = 'users'
@@ -100,57 +106,30 @@ def create_and_save_new_user(data: dict):
 
 def login_user(email: str, password: str, user: Users):
     print(user.password, password)
-    if check_password_hash(user.password, password):
+    if check_password_hash(str(user.password), password):
         session.user_email = email
         return None
     else:
-        return 'Wrong password'
+        return 'Wrong email-password pair'
 
 
-@app.route("/register", methods=["POST"])
+@app.route("/users", methods=["POST"])
 def register():
     json_input = request.get_json()
     try:
         data = user_schema.load(json_input)
     except ValidationError as err:
-        return {"errors": err.messages}, 422
+        return {"error": err.messages}, 422
     user: Users = Users.query.filter(Users.email == data["email"]).first()
     if not user:
         user = create_and_save_new_user(data)
         message = f"Successfully created user: {user.email}"
     else:
-        print('user', user.email, user.id)
-        return {"errors": "That email address is already in the database"}, 400
+        return {"error": "That email address is already in the database"}, 400
 
-    data = user_schema.dump(user)
+    data = user_schema_out.dump(user)
     data["message"] = message
     return data, 201
-
-
-@app.route('/tasks', methods=["POST"])
-def create_entry():
-    json_input = request.get_json()
-    try:
-        todo = todo_schema.load(json_input)
-    except ValidationError as err:
-        return {"errors": err.messages}, 422
-    todo = TODOlist(**todo)
-    db.session.add(todo)
-    db.session.commit()
-    created_id = todo.id
-
-    return {"created_id": created_id}, 201
-
-
-@app.route('/tasks/<todo_id>', methods=['GET'])
-def get_entry(todo_id: int):
-    todo = TODOlist.query.filter(id == todo_id).first()
-    return {'todo_list': todo_schema_list.dump(todo)}
-
-
-@app.route('/tasks', methods=['GET'])
-def get_entry_list():
-    return {'todo_list': todo_schema_list.dump(TODOlist.query.all())}
 
 
 @app.route('/login', methods=["POST"])
@@ -159,16 +138,15 @@ def login():
     try:
         todo = user_schema.load(json_input)
     except ValidationError as err:
-        return {"errors": err.messages}, 422
+        return {"error": err.messages}, 422
 
     user = Users.query.filter(Users.email == todo.get('email')).first()
-    logged_in = None
     if user is not None:
         logged_in = login_user(todo.get('email'), todo.get('password'), user)
     else:
-        return {"error": f"User email {todo.get('email')} does not exist, please sign up and then log in."}
+        return {"error": f"User email {todo.get('email')} does not exist, please sign up and then log in."}, 400
     if logged_in is not None:
-        return {"error": logged_in}
+        return {"error": logged_in}, 400
 
     token = create_access_token(user.email)
     return jsonify(access_token=token), 200
@@ -177,8 +155,7 @@ def login():
 @app.route('/current')
 @jwt_required()
 def get_current_user():
-    return get_jwt()
-    # return {"current_user_email": session.user_email}
+    return {"current_user_email": session.user_email}
 
 
 if __name__ == '__main__':

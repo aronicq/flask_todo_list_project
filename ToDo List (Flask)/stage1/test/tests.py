@@ -18,7 +18,7 @@ class ServerTest(FlaskTest):
             return wrong(f'Response should be in json format')
 
         if hw.status_code != 200:
-            return wrong('Response code of successfully GET method should be 200')
+            return wrong('Response code of successful GET method should be 200')
 
         if 'todo_list' not in hw.json():
             return wrong('Response object should contain todo_list key')
@@ -34,7 +34,7 @@ class ServerTest(FlaskTest):
             return wrong(f'Response should be in json format')
 
         if hw.status_code != 200:
-            return wrong('Response code of successfully GET method should be 200')
+            return wrong('Response code of successful GET method should be 200')
 
         if 'error' not in hw.json():
             return wrong('Response object should contain "error" key if requested index is not found')
@@ -51,7 +51,7 @@ class ServerTest(FlaskTest):
             return wrong(f'Response should be in json format')
 
         if hw.status_code != 201:
-            return wrong('Response code of successfully POST method should be 201')
+            return wrong('Response code of successful POST method should be 201')
 
         if 'todo_list_length' not in hw.json():
             return wrong('Response object should contain "todo_list_length" key')
@@ -71,7 +71,7 @@ class ServerTest(FlaskTest):
             return wrong(f'Response should be in json format')
 
         if hw.status_code != 200:
-            return wrong('Response code of successfully GET method should be 200')
+            return wrong('Response code of successful GET method should be 200')
 
         if 'todo_list' not in hw.json():
             return wrong('Response object should contain todo_list key')

@@ -48,7 +48,7 @@ def create_entry():
     try:
         todo = todo_schema.load(json_input)
     except ValidationError as err:
-        return {"errors": err.messages}, 422
+        return {"error": err.messages}, 422
     todo = TODOlist(**todo)
     db.session.add(todo)
     db.session.commit()
