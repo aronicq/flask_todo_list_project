@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List
 
 import sqlalchemy
@@ -73,19 +75,38 @@ user_schema = UserSchema()
 user_schema_out = UserSchemaOut()
 
 
+from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+users_lists_access_table = sqlalchemy.Table(
+    "users_lists_access",
+    Base.metadata,
+    sqlalchemy.Column("user_id", sqlalchemy.ForeignKey("users.id")),
+    sqlalchemy.Column("list_id", sqlalchemy.ForeignKey("lists.id")),
+)
+
+
+class TODOlists(db.Model):
+    __tablename__ = 'lists'
+    id = sqlalchemy.Column(db.Integer, primary_key=True)
+    users: Mapped[List[Users]] = relationship(
+        secondary=users_lists_access_table, back_populates="lists"
+    )
+
+
 class Users(db.Model):
     __tablename__ = 'users'
 
     id = sqlalchemy.Column(db.Integer, primary_key=True)
     password = sqlalchemy.Column(db.String, nullable=False)
     email = sqlalchemy.Column(db.String, nullable=False)
-
-
-class TODOlists(db.Model):
-    __tablename__ = 'lists'
-    id = sqlalchemy.Column(db.Integer, primary_key=True)
-
-    user_id = sqlalchemy.Column(db.Integer, sqlalchemy.ForeignKey('users.id'))
+    lists: Mapped[List[TODOlists]] = relationship(
+        secondary=users_lists_access_table, back_populates="users"
+    )
 
 
 class Tasks(db.Model):
@@ -109,8 +130,8 @@ def create_and_save_new_user(data: dict):
     return new_user
 
 
-def login_user(password: str, user_password: str):
-    if check_password_hash(str(user_password), password):
+def login_user(password: str, user_pass: str):
+    if check_password_hash(str(user_pass), password):
         return None
     else:
         return 'Wrong email-password pair'

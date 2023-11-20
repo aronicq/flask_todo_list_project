@@ -1,0 +1,10 @@
+type: edu
+files:
+- name: task.py
+  visible: true
+- name: instance/sqlite.db
+  visible: true
+- name: test/tests.py
+  visible: false
+- name: test/__init__.py
+  visible: true

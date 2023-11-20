@@ -48,35 +48,16 @@ class Users(db.Model):
     email = sqlalchemy.Column(db.String, nullable=False)
 
 
-class Session:
-    def __init__(self):
-        self._user_email = None
-
-    @property
-    def user_email(self):
-        return self._user_email
-
-    @user_email.setter
-    def user_email(self, user_email):
-        self._user_email = user_email
-
-
-session = Session()
-
-
 def create_and_save_new_user(data: dict):
     new_user = Users(email=data.get('email'), password=generate_password_hash(data.get('password')))
 
     db.session.add(new_user)
     db.session.commit()
-    session.user_email = new_user.email
     return new_user
 
 
-def login_user(email: str, password: str, user: Users):
-    print(user.password, password)
-    if check_password_hash(str(user.password), password):
-        session.user_email = email
+def login_user(password: str, user_password: str):
+    if check_password_hash(str(user_password), password):
         return None
     else:
         return 'Wrong email-password pair'
@@ -111,7 +92,7 @@ def login():
 
     user = Users.query.filter(Users.email == todo.get('email')).first()
     if user is not None:
-        logged_in = login_user(todo.get('email'), todo.get('password'), user)
+        logged_in = login_user(todo.get('password'), user.password)
     else:
         return {"error": f"User email {todo.get('email')} does not exist, please sign up and then log in."}, 400
     if logged_in is not None:
@@ -124,7 +105,7 @@ def login():
 @app.route('/current')
 @jwt_required()
 def get_current_user():
-    return {"current_user_email": session.user_email}
+    return {"current_user_email": get_jwt().get('sub')}
 
 
 if __name__ == '__main__':
