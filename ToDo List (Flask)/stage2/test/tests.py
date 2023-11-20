@@ -50,6 +50,25 @@ class ServerTest(FlaskTest):
         return correct()
 
     @dynamic_test
+    def test_put_201(self):
+        hw: Response = requests.post(self.get_url('/tasks'), json=dict(
+            title='title',
+            description='descr',
+            deadline_time='2001-01-01 12:00:00',
+            is_completed=False
+        ))
+
+        created_id = hw.json().get('created_id')
+        hw: Response = requests.put(self.get_url('/tasks'), json=dict(
+            id=created_id,
+            is_completed=True
+        ))
+        if not hw.json().get('todo_list')[0].get('is_completed'):
+            return wrong('completed state should have been changed')
+
+        return correct()
+
+    @dynamic_test
     def test_post_422(self):
         hw: Response = requests.post(self.get_url('/tasks'), json=dict(name='1'))
 

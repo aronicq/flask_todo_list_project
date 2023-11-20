@@ -18,6 +18,11 @@ class TODOEntry(Schema):
     is_completed = fields.Boolean(required=True)
 
 
+class TODOEntryUpdate(Schema):
+    id = fields.Integer(required=True)
+    is_completed = fields.Boolean(required=True)
+
+
 class TODOEntryOut(Schema):
     id = fields.Integer()
     title = fields.String(required=True)
@@ -40,6 +45,7 @@ class TODOlist(db.Model):
 
 todo_schema = TODOEntry()
 todo_schema_list = TODOEntryOut(many=True)
+todo_update = TODOEntryUpdate()
 
 
 @app.route('/tasks', methods=["POST"])
@@ -59,8 +65,21 @@ def create_entry():
 
 @app.route('/tasks/<todo_id>', methods=['GET'])
 def get_entry(todo_id: int):
-    todo = TODOlist.query.filter(id == todo_id).first()
+    todo = TODOlist.query.filter(TODOlist.id == todo_id).first()
     return {'todo_list': todo_schema_list.dump(todo)}
+
+
+@app.route('/tasks', methods=['PUT'])
+def change_entry():
+    json_input = request.get_json()
+    try:
+        todo = todo_update.load(json_input)
+    except ValidationError as err:
+        return {"error": err.messages}, 422
+    todo_object: TODOlist = TODOlist.query.filter(TODOlist.id == todo.get('id')).first()
+    todo_object.is_completed = todo.get('is_completed')
+    db.session.commit()
+    return {'todo_list': todo_schema_list.dump([todo_object])}
 
 
 @app.route('/tasks', methods=['GET'])
