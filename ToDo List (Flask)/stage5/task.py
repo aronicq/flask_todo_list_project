@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import List
+from enum import Enum
+from typing import List, Optional
 
 import sqlalchemy
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
+
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, request, jsonify
 from marshmallow import Schema, fields, ValidationError
@@ -12,6 +14,7 @@ from flask_login import LoginManager
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt
+
 
 app = Flask(import_name='TODO list project')
 app.config["SECRET_KEY"] = 'MY-SECRET-KEY'
@@ -69,43 +72,47 @@ class TasksList(Schema):
 
 todo_schema_list = TODOEntryOut(many=True)
 
-
 tasks_list = TasksList()
 user_schema = UserSchema()
 user_schema_out = UserSchemaOut()
-
-
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 
 
 class Base(DeclarativeBase):
     pass
 
 
-users_lists_access_table = sqlalchemy.Table(
-    "users_lists_access",
-    Base.metadata,
-    sqlalchemy.Column("user_id", sqlalchemy.ForeignKey("users.id")),
-    sqlalchemy.Column("list_id", sqlalchemy.ForeignKey("lists.id")),
-)
+class SharedStateEnum(str, Enum):
+    SHARED = 'SHARED'
+    AUTHOR = 'AUTHOR'
+
+
+class UsersListsAccessTable(db.Model):
+    __tablename__ = "users_lists_access"
+
+    user_id: Mapped[int] = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id"), primary_key=True)
+    list_id: Mapped[int] = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("lists.id"), primary_key=True)
+    extra_data: Mapped[Optional[str]] = sqlalchemy.Column(sqlalchemy.String, default=SharedStateEnum.SHARED)
+
+    list: Mapped[TODOlists] = relationship(back_populates="users")
+    user: Mapped[Users] = relationship(back_populates="lists")
 
 
 class TODOlists(db.Model):
     __tablename__ = 'lists'
-    id = sqlalchemy.Column(db.Integer, primary_key=True)
-    users: Mapped[List[Users]] = relationship(
-        secondary=users_lists_access_table, back_populates="lists"
+    id: Mapped[int] = sqlalchemy.Column(db.Integer, primary_key=True)
+    users: Mapped[List[UsersListsAccessTable]] = relationship(
+        back_populates="list"
     )
 
 
 class Users(db.Model):
     __tablename__ = 'users'
 
-    id = sqlalchemy.Column(db.Integer, primary_key=True)
-    password = sqlalchemy.Column(db.String, nullable=False)
-    email = sqlalchemy.Column(db.String, nullable=False)
-    lists: Mapped[List[TODOlists]] = relationship(
-        secondary=users_lists_access_table, back_populates="users"
+    id: Mapped[int] = sqlalchemy.Column(db.Integer, primary_key=True)
+    password: Mapped[str] = sqlalchemy.Column(db.String, nullable=False)
+    email: Mapped[str] = sqlalchemy.Column(db.String, nullable=False)
+    lists: Mapped[List[UsersListsAccessTable]] = relationship(
+        back_populates="user"
     )
 
 
@@ -149,11 +156,29 @@ def get_list_id(task_id):
     return task.list_id
 
 
-def check_list_access(list_id, user_id):
-    todo_list: TODOlists = TODOlists.query.filter(TODOlists.id == list_id).first()
+def check_list_shared_access(list_id, user_id):
+    todo_list = UsersListsAccessTable.query.filter(UsersListsAccessTable.list_id == list_id)\
+        .filter(UsersListsAccessTable.user_id == user_id).all()
     if not todo_list:
-        raise Exception(f'no list with id {list_id}')
-    return todo_list.user_id == user_id
+        return f'no access to list with id {list_id}'
+    return None
+
+
+def check_list_author_access(list_id, user_id):
+    todo_list = UsersListsAccessTable.query.filter(UsersListsAccessTable.list_id == list_id)\
+        .filter(UsersListsAccessTable.user_id == user_id)\
+        .filter(UsersListsAccessTable.extra_data == SharedStateEnum.AUTHOR).all()
+    if not todo_list:
+        return f'no access to list with id {list_id}'
+    return None
+
+
+@app.route("/users", methods=["GET"])
+def get_user_by_email():
+    if 'email' not in request.args:
+        return {"error": "no email passed"}, 400
+    email = request.args['email']
+    return {"user_id": get_user_id(email)}
 
 
 @app.route("/users", methods=["POST"])
@@ -195,6 +220,80 @@ def login():
     return jsonify(access_token=token), 200
 
 
+class TasksListAccess(Schema):
+    user_id = fields.Integer()
+    list_id = fields.Integer()
+
+
+tasks_list_access = TasksListAccess()
+
+
+@app.route('/access', methods=['POST'])
+@jwt_required()
+def share_access():
+    json_input = request.get_json()
+    try:
+        access_params = tasks_list_access.load(json_input)
+    except ValidationError as err:
+        return {"error": err.messages}, 422
+
+    list_id = access_params.get('list_id')
+    user_id = access_params.get('user_id')
+    if not TODOlists.query.get(list_id):
+        return {"error": f"no list with such id"}, 400
+    if not Users.query.get(user_id):
+        return {"error": "no user with such id"}, 400
+
+    access_error = check_list_author_access(
+        list_id=list_id,
+        user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id,
+    )
+    if access_error:
+        return {"error": access_error}, 401
+
+    access = UsersListsAccessTable(
+        extra_data=SharedStateEnum.SHARED, user_id=user_id, list_id=list_id,
+    )
+    db.session.add(access)
+    try:
+        db.session.commit()
+    except sqlalchemy.exc.IntegrityError as e:
+        return {"error": "this user already has access to the list"}
+
+    return {"shared_list_id": list_id}, 201
+
+
+@app.route('/access', methods=['DELETE'])
+@jwt_required()
+def revoke_access():
+    json_input = request.get_json()
+    try:
+        access_params = tasks_list_access.load(json_input)
+    except ValidationError as err:
+        return {"error": err.messages}, 422
+
+    list_id = access_params.get('list_id')
+    user_id = access_params.get('user_id')
+
+    if not TODOlists.query.get(list_id):
+        return {"error": f"no list with such id"}, 400
+    if not Users.query.get(user_id):
+        return {"error": "no user with such id"}, 400
+
+    access_error = check_list_author_access(
+        list_id=list_id,
+        user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id,
+    )
+    if access_error:
+        return {"error": access_error}, 401
+
+    UsersListsAccessTable.query.filter(UsersListsAccessTable.list_id == list_id)\
+        .filter(UsersListsAccessTable.user_id == user_id).delete()
+
+    db.session.commit()
+    return {"deleted_id": user_id}, 200
+
+
 @app.route('/lists', methods=["POST"])
 @jwt_required()
 def create_new_list():
@@ -206,17 +305,34 @@ def create_new_list():
         return {"error": err.messages}, 422
 
     list_id = todo.get('list_id')
-    if not TODOlists.query.filter(TODOlists.id == list_id).first():
-        new_list = TODOlists(user_id=get_user_id(email))
-        db.session.add(new_list)
+    todo_list = TODOlists.query.filter(TODOlists.id == list_id).first()
+    if not todo_list:
+        todo_list = TODOlists()
+        access = UsersListsAccessTable(extra_data=SharedStateEnum.AUTHOR, user_id=get_user_id(email), list=todo_list)
+        db.session.add(todo_list)
+        db.session.add(access)
         db.session.commit()
-        list_id = new_list.id
 
-    for task in todo.get('list'):
-        task['list_id'] = list_id
+    else:
+        access_error = check_list_author_access(
+            list_id=list_id,
+            user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id,
+        )
+        if access_error:
+            return {"error": access_error}, 401
 
-    todo = [Tasks(**t) for t in todo.get('list')]
-    db.session.bulk_save_objects(todo)
+    list_id = todo_list.id
+    todo_list = []
+    for t in todo.get('list'):
+        todo_list.append(
+            Tasks(
+                title=t.get('title'),
+                description=t.get('description'),
+                deadline_time=t.get('deadline_time'),
+                list_id=list_id,
+            )
+        )
+    db.session.bulk_save_objects(todo_list)
     db.session.commit()
     created_id = list_id
 
@@ -227,8 +343,13 @@ def create_new_list():
 @jwt_required()
 def get_entry(todo_id: int):
     list_id = get_list_id(task_id=todo_id)
-    if not check_list_access(list_id=list_id, user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
-        return {"error": "no access"}, 401
+
+    access_error = check_list_shared_access(
+        list_id=list_id,
+        user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id,
+    )
+    if access_error:
+        return {"error": access_error}, 401
     todo = Tasks.query.get(todo_id)
     return {'todo_list': todo_schema_list.dump([todo])}
 
@@ -236,8 +357,12 @@ def get_entry(todo_id: int):
 @app.route('/lists/<list_id>', methods=['GET'])
 @jwt_required()
 def get_entry_list(list_id: int):
-    if not check_list_access(list_id=list_id, user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
-        return {"error": "no access"}, 401
+    access_error = check_list_shared_access(
+        list_id=list_id,
+        user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id,
+    )
+    if access_error:
+        return {"error": access_error}, 401
     todo = Tasks.query.filter(Tasks.list_id == list_id).all()
     return {'todo_list': todo_schema_list.dump(todo)}
 

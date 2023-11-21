@@ -212,6 +212,32 @@ def get_entry(todo_id: int):
     return {'todo_list': todo_schema_list.dump([todo])}
 
 
+class TODOEntryUpdate(Schema):
+    id = fields.Integer(required=True)
+    is_completed = fields.Boolean(required=True)
+
+
+todo_update = TODOEntryUpdate()
+
+
+@app.route('/tasks', methods=['PUT'])
+def change_entry():
+    json_input = request.get_json()
+    try:
+        todo = todo_update.load(json_input)
+    except ValidationError as err:
+        return {"error": err.messages}, 422
+
+    list_id = get_list_id(task_id=todo.get('id'))
+    if not check_list_access(list_id=list_id, user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
+        return {"error": "no access"}, 401
+
+    todo_object: Tasks = Tasks.query.filter(Tasks.id == todo.get('id')).first()
+    todo_object.is_completed = todo.get('is_completed')
+    db.session.commit()
+    return {'todo_list': todo_schema_list.dump([todo_object])}
+
+
 @app.route('/lists/<list_id>', methods=['GET'])
 @jwt_required()
 def get_entry_list(list_id: int):
