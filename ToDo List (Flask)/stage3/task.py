@@ -14,7 +14,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///sqlite.db"
 
 db: SQLAlchemy = SQLAlchemy(app)
 
-app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Replace 'your-secret-key' with your actual secret key
+app.config['JWT_SECRET_KEY'] = 'your-secret-key'
 jwt = JWTManager(app)
 
 

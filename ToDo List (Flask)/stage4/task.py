@@ -1,7 +1,4 @@
-from typing import List
-
 import sqlalchemy
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, request, jsonify
 from marshmallow import Schema, fields, ValidationError
@@ -20,7 +17,7 @@ login_manager.init_app(app)
 
 db: SQLAlchemy = SQLAlchemy(app)
 
-app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Replace 'your-secret-key' with your actual secret key
+app.config['JWT_SECRET_KEY'] = 'your-secret-key'
 jwt = JWTManager(app)
 
 
@@ -66,7 +63,6 @@ class TasksList(Schema):
 
 
 todo_schema_list = TODOEntryOut(many=True)
-
 
 tasks_list = TasksList()
 user_schema = UserSchema()
@@ -191,6 +187,12 @@ def create_new_list():
         db.session.commit()
         list_id = new_list.id
 
+    elif not check_list_access(
+        list_id=list_id,
+        user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id
+    ):
+        return {"error": "no access"}, 403
+
     for task in todo.get('list'):
         task['list_id'] = list_id
 
@@ -206,7 +208,10 @@ def create_new_list():
 @jwt_required()
 def get_entry(todo_id: int):
     list_id = get_list_id(task_id=todo_id)
-    if not check_list_access(list_id=list_id, user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
+    if not check_list_access(
+        list_id=list_id,
+        user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id
+    ):
         return {"error": "no access"}, 403
     todo = Tasks.query.get(todo_id)
     return {'todo_list': todo_schema_list.dump([todo])}
@@ -229,7 +234,8 @@ def change_entry():
         return {"error": err.messages}, 422
 
     list_id = get_list_id(task_id=todo.get('id'))
-    if not check_list_access(list_id=list_id, user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
+    if not check_list_access(list_id=list_id,
+                             user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
         return {"error": "no access"}, 403
 
     todo_object: Tasks = Tasks.query.filter(Tasks.id == todo.get('id')).first()
@@ -238,10 +244,22 @@ def change_entry():
     return {'todo_list': todo_schema_list.dump([todo_object])}
 
 
+@app.route('/tasks', methods=['DELETE'])
+def change_entry():
+    if 'task_id' not in request.args:
+        return {"error": "no task_id param passed"}, 400
+
+    task_is = request.args.get('task_id')
+    Tasks.query.get(task_is).delete()
+    db.session.commit()
+    return {'task_id': task_is}
+
+
 @app.route('/lists/<list_id>', methods=['GET'])
 @jwt_required()
 def get_entry_list(list_id: int):
-    if not check_list_access(list_id=list_id, user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
+    if not check_list_access(list_id=list_id,
+                             user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
         return {"error": "no access"}, 403
     todo = Tasks.query.filter(Tasks.list_id == list_id).all()
     return {'todo_list': todo_schema_list.dump(todo)}

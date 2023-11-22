@@ -25,7 +25,7 @@ login_manager.init_app(app)
 
 db: SQLAlchemy = SQLAlchemy(app)
 
-app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Replace 'your-secret-key' with your actual secret key
+app.config['JWT_SECRET_KEY'] = 'your-secret-key'
 jwt = JWTManager(app)
 
 
@@ -91,7 +91,7 @@ class UsersListsAccessTable(db.Model):
 
     user_id: Mapped[int] = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id"), primary_key=True)
     list_id: Mapped[int] = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("lists.id"), primary_key=True)
-    extra_data: Mapped[Optional[str]] = sqlalchemy.Column(sqlalchemy.String, default=SharedStateEnum.SHARED)
+    access_type: Mapped[Optional[str]] = sqlalchemy.Column(sqlalchemy.String, default=SharedStateEnum.SHARED)
 
     list: Mapped[TODOlists] = relationship(back_populates="users")
     user: Mapped[Users] = relationship(back_populates="lists")
@@ -167,7 +167,7 @@ def check_list_shared_access(list_id, user_id):
 def check_list_author_access(list_id, user_id):
     todo_list = UsersListsAccessTable.query.filter(UsersListsAccessTable.list_id == list_id)\
         .filter(UsersListsAccessTable.user_id == user_id)\
-        .filter(UsersListsAccessTable.extra_data == SharedStateEnum.AUTHOR).all()
+        .filter(UsersListsAccessTable.access_type == SharedStateEnum.AUTHOR).all()
     if not todo_list:
         return f'no access to list with id {list_id}'
     return None
@@ -176,7 +176,7 @@ def check_list_author_access(list_id, user_id):
 @app.route("/users", methods=["GET"])
 def get_user_by_email():
     if 'email' not in request.args:
-        return {"error": "no email passed"}, 400
+        return {"error": "no email passed"}, 422
     email = request.args['email']
     return {"user_id": get_user_id(email)}
 
@@ -252,7 +252,7 @@ def share_access():
         return {"error": access_error}, 403
 
     access = UsersListsAccessTable(
-        extra_data=SharedStateEnum.SHARED, user_id=user_id, list_id=list_id,
+        access_type=SharedStateEnum.SHARED, user_id=user_id, list_id=list_id,
     )
     db.session.add(access)
     try:

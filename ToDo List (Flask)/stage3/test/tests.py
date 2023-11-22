@@ -156,7 +156,6 @@ class ServerTest(FlaskTest):
         token = hw.json().get('access_token')
 
         hw = requests.get(self.get_url('/current'), headers={'Authorization': f'Bearer {token + "1"}'})
-        print('hw', hw.status_code, hw.json())
         try:
             json.loads(hw.content)
         except Exception:
