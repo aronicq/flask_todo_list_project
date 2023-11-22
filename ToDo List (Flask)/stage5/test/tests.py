@@ -95,11 +95,12 @@ class ServerTest(FlaskTest):
 
         if len(hw.json().get('todo_list')) != 4:
             return wrong('Wrong list length')
+
         return correct()
 
     # append to list no right at all
     @dynamic_test
-    def test_post_append_401(self):
+    def test_post_append_403(self):
         hw = requests.post(self.get_url('/login'), json={
             "email": f"{self.existing_user}",
             "password": "132"
@@ -158,14 +159,14 @@ class ServerTest(FlaskTest):
             },
             headers=headers,
         )
-        if hw.status_code != 401:
+        if hw.status_code != 403:
             return wrong('not author should not have access to the list without sharing it to them')
 
         return correct()
 
     # append to list no write right:
     @dynamic_test
-    def test_post_list_can_only_read_401(self):
+    def test_post_list_can_only_read_403(self):
         hw = requests.post(self.get_url('/login'), json={
             "email": f"{self.existing_user}",
             "password": "132"
@@ -230,7 +231,7 @@ class ServerTest(FlaskTest):
             },
             headers=headers,
         )
-        if hw.status_code != 401:
+        if hw.status_code != 403:
             return wrong('not author should not have access to the list without sharing it to them')
 
         return correct()
@@ -295,7 +296,7 @@ class ServerTest(FlaskTest):
         return correct()
 
     # share no right
-    def test_share_read_access_No_right_to_share_401(self):
+    def test_share_read_access_no_right_to_share_403(self):
         hw = requests.post(self.get_url('/login'), json={
             "email": f"{self.existing_user}",
             "password": "132"
@@ -345,8 +346,8 @@ class ServerTest(FlaskTest):
             "list_id": created_list_id
         }, headers=headers)
 
-        if hw.status_code != 401:
-            return wrong('not author should not be able to share list and should get 401 code')
+        if hw.status_code != 403:
+            return wrong('not author should not be able to share list and should get 403 code')
 
         return correct()
 
@@ -496,7 +497,7 @@ class ServerTest(FlaskTest):
         return correct()
 
     # unshare no right
-    def test_revoke_read_access_No_right_to_share_401(self):
+    def test_revoke_read_access_no_right_to_share_403(self):
         hw = requests.post(self.get_url('/login'), json={
             "email": f"{self.existing_user}",
             "password": "132"
@@ -546,8 +547,8 @@ class ServerTest(FlaskTest):
             "list_id": created_list_id
         }, headers=headers)
 
-        if hw.status_code != 401:
-            return wrong('not author should not be able to revoke shared access list and should get 401 code')
+        if hw.status_code != 403:
+            return wrong('not author should not be able to revoke shared access list and should get 403 code')
 
         return correct()
 
@@ -637,84 +638,82 @@ class ServerTest(FlaskTest):
 
         return correct()
 
-    # get list ok
+    # read list no access
+    @dynamic_test
+    def test_post_append_201(self):
+        hw = requests.post(self.get_url('/login'), json={
+            "email": f"{self.existing_user}",
+            "password": "132"
+        })
 
+        token = hw.json().get('access_token')
+        headers = {'Authorization': f'Bearer {token}'}
 
-    # get list no right
+        hw: Response = requests.post(
+            self.get_url('/lists'),
+            json={
+                "list": [
+                    dict(
+                        title='title',
+                        description='descr',
+                        deadline_time='2001-01-01 12:00:00',
+                        is_completed=False
+                    )
+                ]
+            },
+            headers=headers,
+        )
+        created_list_id = hw.json().get('created_list_id')
+        hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
 
-    # @dynamic_test
-    # def test_get_list_200(self):
-    #     hw = requests.post(self.get_url('/login'), json={
-    #         "email": f"{self.existing_user}",
-    #         "password": "132"
-    #     })
-    #
-    #     token = hw.json().get('access_token')
-    #     headers = {'Authorization': f'Bearer {token}'}
-    #
-    #     hw: Response = requests.post(
-    #         self.get_url('/lists'),
-    #         json={
-    #             "list": [
-    #                 dict(
-    #                     title='title',
-    #                     description='descr',
-    #                     deadline_time='2001-01-01 12:00:00',
-    #                     is_completed=False
-    #                 )
-    #             ]
-    #         },
-    #         headers=headers,
-    #     )
-    #     created_list_id = hw.json().get('created_list_id')
-    #
-    #     hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
-    #
-    #     if len(hw.json().get('todo_list')) != 1:
-    #         return wrong('Number of created elements in list is not correct')
-    #
-    #     return correct()
-    #
-    # @dynamic_test
-    # def test_get_list_401(self):
-    #     hw = requests.post(self.get_url('/login'), json={
-    #         "email": f"{self.existing_user}",
-    #         "password": "132"
-    #     })
-    #
-    #     token = hw.json().get('access_token')
-    #     headers = {'Authorization': f'Bearer {token}'}
-    #
-    #     hw: Response = requests.post(
-    #         self.get_url('/lists'),
-    #         json={
-    #             "list": [
-    #                 dict(
-    #                     title='title',
-    #                     description='descr',
-    #                     deadline_time='2001-01-01 12:00:00',
-    #                     is_completed=False
-    #                 )
-    #             ]
-    #         },
-    #         headers=headers,
-    #     )
-    #     created_list_id = hw.json().get('created_list_id')
-    #     new_user = f"{uuid.uuid4()}@mail.com"
-    #     hw = requests.post(self.get_url('/users'), json={
-    #         "email": new_user,
-    #         "password": "132"
-    #     })
-    #     hw = requests.post(self.get_url('/login'), json={
-    #         "email": new_user,
-    #         "password": "132"
-    #     })
-    #     token = hw.json().get('access_token')
-    #     headers = {'Authorization': f'Bearer {token}'}
-    #
-    #     hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
-    #     if hw.status_code != 401:
-    #         return wrong('lists created by one user should no be accessible by others')
-    #
-    #     return correct()
-    #
+        if len(hw.json().get('todo_list')) != 1:
+            return wrong('Wrong list length')
+
+        hw: Response = requests.post(
+            self.get_url('/lists'),
+            json={
+                "list": [
+                    dict(
+                        title='title',
+                        description='descr',
+                        deadline_time='2001-01-01 12:00:00',
+                        is_completed=False
+                    ),
+                    dict(
+                        title='title',
+                        description='descr',
+                        deadline_time='2001-01-01 12:00:00',
+                        is_completed=False
+                    ),
+                    dict(
+                        title='title',
+                        description='descr',
+                        deadline_time='2001-01-01 12:00:00',
+                        is_completed=False
+                    )
+                ],
+                "list_id": created_list_id
+            },
+            headers=headers,
+        )
+        created_list_id = hw.json().get('created_list_id')
+
+        # register here:
+        new_email = f"{uuid.uuid4()}@mail.com"
+        hw = requests.post(self.get_url('/users'), json={
+            "email": new_email,
+            "password": "132"
+        })
+        hw = requests.post(self.get_url('/login'), json={
+            "email": new_email,
+            "password": "132"
+        })
+
+        token = hw.json().get('access_token')
+        headers = {'Authorization': f'Bearer {token}'}
+
+        hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
+
+        if hw.status_code != 403:
+            return wrong('User with should get 403 when trying to get list with no access')
+        return correct()

@@ -249,7 +249,7 @@ def share_access():
         user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id,
     )
     if access_error:
-        return {"error": access_error}, 401
+        return {"error": access_error}, 403
 
     access = UsersListsAccessTable(
         extra_data=SharedStateEnum.SHARED, user_id=user_id, list_id=list_id,
@@ -285,7 +285,7 @@ def revoke_access():
         user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id,
     )
     if access_error:
-        return {"error": access_error}, 401
+        return {"error": access_error}, 403
 
     UsersListsAccessTable.query.filter(UsersListsAccessTable.list_id == list_id)\
         .filter(UsersListsAccessTable.user_id == user_id).delete()
@@ -319,7 +319,7 @@ def create_new_list():
             user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id,
         )
         if access_error:
-            return {"error": access_error}, 401
+            return {"error": access_error}, 403
 
     list_id = todo_list.id
     todo_list = []
@@ -349,7 +349,7 @@ def get_entry(todo_id: int):
         user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id,
     )
     if access_error:
-        return {"error": access_error}, 401
+        return {"error": access_error}, 403
     todo = Tasks.query.get(todo_id)
     return {'todo_list': todo_schema_list.dump([todo])}
 
@@ -362,7 +362,7 @@ def get_entry_list(list_id: int):
         user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id,
     )
     if access_error:
-        return {"error": access_error}, 401
+        return {"error": access_error}, 403
     todo = Tasks.query.filter(Tasks.list_id == list_id).all()
     return {'todo_list': todo_schema_list.dump(todo)}
 

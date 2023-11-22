@@ -115,7 +115,7 @@ class ServerTest(FlaskTest):
         return correct()
 
     @dynamic_test
-    def test_get_list_401(self):
+    def test_get_list_403(self):
         hw = requests.post(self.get_url('/login'), json={
             "email": f"{self.existing_user}",
             "password": "132"
@@ -152,7 +152,7 @@ class ServerTest(FlaskTest):
         headers = {'Authorization': f'Bearer {token}'}
 
         hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
-        if hw.status_code != 401:
+        if hw.status_code != 403:
             return wrong('lists created by one user should no be accessible by others')
 
         return correct()
@@ -181,7 +181,6 @@ class ServerTest(FlaskTest):
             },
             headers=headers,
         )
-        print('hw.json()', hw.json())
         created_list_id = hw.json().get('created_list_id')
         hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
 
@@ -215,7 +214,6 @@ class ServerTest(FlaskTest):
             },
             headers=headers,
         )
-        print('hw.json() 2', hw.json())
         created_list_id = hw.json().get('created_list_id')
         hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
 

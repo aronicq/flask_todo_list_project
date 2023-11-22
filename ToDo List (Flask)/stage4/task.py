@@ -207,7 +207,7 @@ def create_new_list():
 def get_entry(todo_id: int):
     list_id = get_list_id(task_id=todo_id)
     if not check_list_access(list_id=list_id, user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
-        return {"error": "no access"}, 401
+        return {"error": "no access"}, 403
     todo = Tasks.query.get(todo_id)
     return {'todo_list': todo_schema_list.dump([todo])}
 
@@ -230,7 +230,7 @@ def change_entry():
 
     list_id = get_list_id(task_id=todo.get('id'))
     if not check_list_access(list_id=list_id, user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
-        return {"error": "no access"}, 401
+        return {"error": "no access"}, 403
 
     todo_object: Tasks = Tasks.query.filter(Tasks.id == todo.get('id')).first()
     todo_object.is_completed = todo.get('is_completed')
@@ -242,7 +242,7 @@ def change_entry():
 @jwt_required()
 def get_entry_list(list_id: int):
     if not check_list_access(list_id=list_id, user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
-        return {"error": "no access"}, 401
+        return {"error": "no access"}, 403
     todo = Tasks.query.filter(Tasks.list_id == list_id).all()
     return {'todo_list': todo_schema_list.dump(todo)}
 

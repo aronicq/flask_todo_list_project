@@ -2,7 +2,6 @@ import sqlalchemy
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, request, jsonify
 from marshmallow import Schema, fields, ValidationError
-from flask_login import LoginManager
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -12,8 +11,6 @@ app = Flask(import_name='TODO list project')
 app.config["SECRET_KEY"] = 'MY-SECRET-KEY'
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///sqlite.db"
 
-login_manager = LoginManager()
-login_manager.init_app(app)
 
 db: SQLAlchemy = SQLAlchemy(app)
 
