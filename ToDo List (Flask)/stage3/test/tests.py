@@ -54,6 +54,9 @@ class ServerTest(FlaskTest):
         if 'error' not in hw.json():
             return wrong('Register endpoint should return "error" field in case of unsuccessful user registration')
 
+        if hw.json().get('error').lower() != 'email address is already in use':
+            return wrong("Register endpoint should return an error message 'email address is already in use'")
+
         return correct()
 
     @dynamic_test

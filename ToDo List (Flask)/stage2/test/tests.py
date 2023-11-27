@@ -85,7 +85,6 @@ class ServerTest(FlaskTest):
 
         return correct()
 
-
     @dynamic_test
     def test_put_404(self):
         hw: Response = requests.post(self.get_url('/tasks'), json=dict(
@@ -123,6 +122,9 @@ class ServerTest(FlaskTest):
 
         if hw.status_code != 422:
             return wrong('Response code of wrong schema for POST method should be 422')
+
+        if not {'title', 'deadline_time', 'is_completed'} - set(hw.json().get('error')):
+            return wrong('response message should provide missing or incorrect fields title, deadline_time, is_completed')
 
         return correct()
 
@@ -169,15 +171,6 @@ class Test(StageTest):
         if tables is None:
             return wrong('Could not read database file.'
                          'Check if you use database for storage and its placed in special directory')
-        # if len(tables) < 1:
-        #     return wrong('Database contains 0 tables')
-        # tablenames = ['list', 'todo', 'todolist', 'tasks', 'task']
-        #
-        # if not any([any(i.lower() in table.lower() for i in tablenames) for table in tables]):
-        #     return wrong(
-        #         f'Database has no table with relevant names.'
-        #         f'Check name of table in database, it should reflect stored entities: tasks, todo list and so on'
-        #     )
 
         all_entries = con.execute(f'select * from {tables[0]}').fetchall()
 

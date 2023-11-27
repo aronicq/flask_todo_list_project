@@ -252,7 +252,7 @@ def change_entry():
 @jwt_required()
 def delete_entry():
     if 'task_id' not in request.args:
-        return {"error": "no task_id param passed"}, 400
+        return {"error": "no task_id param passed"}, 422
 
     task_id = request.args.get('task_id')
     list_id = get_list_id(task_id=task_id)

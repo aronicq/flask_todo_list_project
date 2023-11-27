@@ -33,11 +33,14 @@ class ServerTest(FlaskTest):
         except Exception:
             return wrong(f'Response should be in json format')
 
-        if hw.status_code != 200:
+        if hw.status_code != 404:
             return wrong('Response code of successful GET method should be 200')
 
         if 'error' not in hw.json():
             return wrong('Response object should contain "error" key if requested index is not found')
+
+        if hw.json().get('error').lower() != 'task not found':
+            return wrong("Response message should be 'task not found'")
 
         return correct()
 

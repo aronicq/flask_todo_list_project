@@ -18,13 +18,13 @@ def create_entry():
 def get_entry(todo_id: int):
     todo_id = int(todo_id)
     if len(todo_list) <= todo_id:
-        return {'error': 'list out of range'}
-    return {'task': todo_list[todo_id]}
+        return {'error': 'task not found'}, 404
+    return {'task': todo_list[todo_id]}, 200
 
 
 @app.route('/tasks', methods=['GET'])
 def get_entry_list():
-    return {'todo_list': todo_list}
+    return {'todo_list': todo_list}, 200
 
 
 if __name__ == '__main__':
