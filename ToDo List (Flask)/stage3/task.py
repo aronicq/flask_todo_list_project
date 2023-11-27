@@ -93,7 +93,7 @@ def login():
     else:
         return {"error": f"User email {todo.get('email')} does not exist, please sign up and then log in."}, 400
     if logged_in is not None:
-        return {"error": logged_in}, 400
+        return {"error": logged_in}, 401
 
     token = create_access_token(user.email)
     return jsonify(access_token=token), 200

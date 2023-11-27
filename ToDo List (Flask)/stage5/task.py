@@ -308,7 +308,7 @@ def create_new_list():
     todo_list = TODOlists.query.filter(TODOlists.id == list_id).first()
     if not todo_list:
         todo_list = TODOlists()
-        access = UsersListsAccessTable(extra_data=SharedStateEnum.AUTHOR, user_id=get_user_id(email), list=todo_list)
+        access = UsersListsAccessTable(access_type=SharedStateEnum.AUTHOR, user_id=get_user_id(email), list=todo_list)
         db.session.add(todo_list)
         db.session.add(access)
         db.session.commit()

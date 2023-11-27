@@ -19,7 +19,7 @@ def get_entry(todo_id: int):
     todo_id = int(todo_id)
     if len(todo_list) <= todo_id:
         return {'error': 'list out of range'}
-    return {'todo_list': [todo_list[todo_id]]}
+    return {'task': todo_list[todo_id]}
 
 
 @app.route('/tasks', methods=['GET'])

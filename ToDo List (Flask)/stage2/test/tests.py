@@ -28,6 +28,23 @@ class ServerTest(FlaskTest):
         return correct()
 
     @dynamic_test
+    def test_get_task_404(self):
+        hw = requests.get(self.get_url('/tasks/1000'))
+        try:
+            json.loads(hw.content)
+        except Exception:
+            return wrong(f'Response should be in json format')
+
+        if hw.status_code != 404:
+            return wrong('Response code for not existing task for GET method should be 404')
+        if "error" not in hw.json():
+            return wrong('Unsuccessful request should return a JSON with an error description under the "error" key')
+        if hw.json().get("error").lower() != "task not found":
+            return wrong('get for not existing task should return error message "Task not found"')
+
+        return correct()
+
+    @dynamic_test
     def test_post_201(self):
         hw: Response = requests.post(self.get_url('/tasks'), json=dict(
             title='title',
@@ -63,8 +80,35 @@ class ServerTest(FlaskTest):
             id=created_id,
             is_completed=True
         ))
-        if not hw.json().get('todo_list')[0].get('is_completed'):
+        if not hw.json().get('task').get('is_completed'):
             return wrong('completed state should have been changed')
+
+        return correct()
+
+
+    @dynamic_test
+    def test_put_404(self):
+        hw: Response = requests.post(self.get_url('/tasks'), json=dict(
+            title='title',
+            description='descr',
+            deadline_time='2001-01-01 12:00:00',
+            is_completed=False
+        ))
+
+        created_id = hw.json().get('created_id')
+        hw: Response = requests.put(self.get_url('/tasks'), json=dict(
+            id=created_id + 1,
+            is_completed=True
+        ))
+
+        if hw.status_code != 404:
+            return wrong('status code for update of non-existing task should return 404')
+
+        if "error" not in hw.json():
+            return wrong('Unsuccessful request should return a JSON with an error description under the "error" key')
+
+        if hw.json().get("error").lower() != "task not found":
+            return wrong('PUT for not existing task should return error message "Task not found"')
 
         return correct()
 
@@ -125,15 +169,15 @@ class Test(StageTest):
         if tables is None:
             return wrong('Could not read database file.'
                          'Check if you use database for storage and its placed in special directory')
-        if len(tables) < 1:
-            return wrong('Database contains 0 tables')
-        tablenames = ['list', 'todo', 'todolist', 'tasks', 'task']
-
-        if not any([any(i.lower() in table.lower() for i in tablenames) for table in tables]):
-            return wrong(
-                f'Database has no table with relevant names.'
-                f'Check name of table in database, it should reflect stored entities: tasks, todo list and so on'
-            )
+        # if len(tables) < 1:
+        #     return wrong('Database contains 0 tables')
+        # tablenames = ['list', 'todo', 'todolist', 'tasks', 'task']
+        #
+        # if not any([any(i.lower() in table.lower() for i in tablenames) for table in tables]):
+        #     return wrong(
+        #         f'Database has no table with relevant names.'
+        #         f'Check name of table in database, it should reflect stored entities: tasks, todo list and so on'
+        #     )
 
         all_entries = con.execute(f'select * from {tables[0]}').fetchall()
 

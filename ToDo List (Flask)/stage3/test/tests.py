@@ -88,7 +88,7 @@ class ServerTest(FlaskTest):
         except Exception:
             return wrong(f'Response should be in json format')
 
-        if hw.status_code != 400:
+        if hw.status_code != 401:
             return wrong('Response code of successful login method should be 200')
 
         if 'error' not in hw.json():

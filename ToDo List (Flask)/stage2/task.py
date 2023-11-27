@@ -44,7 +44,8 @@ class TODOlist(db.Model):
 
 
 todo_schema = TODOEntry()
-todo_schema_list = TODOEntryOut(many=True)
+todo_schema_list_out = TODOEntryOut(many=True)
+todo_schema_out = TODOEntryOut()
 todo_update = TODOEntryUpdate()
 
 
@@ -66,7 +67,9 @@ def create_entry():
 @app.route('/tasks/<todo_id>', methods=['GET'])
 def get_entry(todo_id: int):
     todo = TODOlist.query.filter(TODOlist.id == todo_id).first()
-    return {'todo_list': todo_schema_list.dump(todo)}
+    if not todo:
+        return {"error": "task not found"}, 404
+    return {'task': todo_schema_out.dump(todo)}
 
 
 @app.route('/tasks', methods=['PUT'])
@@ -77,14 +80,16 @@ def change_entry():
     except ValidationError as err:
         return {"error": err.messages}, 422
     todo_object: TODOlist = TODOlist.query.filter(TODOlist.id == todo.get('id')).first()
+    if not todo_object:
+        return {"error": "task not found"}, 404
     todo_object.is_completed = todo.get('is_completed')
     db.session.commit()
-    return {'todo_list': todo_schema_list.dump([todo_object])}
+    return {'task': todo_schema_out.dump(todo_object)}
 
 
 @app.route('/tasks', methods=['GET'])
 def get_entry_list():
-    return {'todo_list': todo_schema_list.dump(TODOlist.query.all())}
+    return {'todo_list': todo_schema_list_out.dump(TODOlist.query.all())}
 
 
 if __name__ == '__main__':

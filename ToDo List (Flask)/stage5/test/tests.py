@@ -296,6 +296,7 @@ class ServerTest(FlaskTest):
         return correct()
 
     # share no right
+    @dynamic_test
     def test_share_read_access_no_right_to_share_403(self):
         hw = requests.post(self.get_url('/login'), json={
             "email": f"{self.existing_user}",
@@ -439,7 +440,7 @@ class ServerTest(FlaskTest):
 
     # unshare ok
     @dynamic_test
-    def test_share_read_access_200(self):
+    def test_unshare_read_access_200(self):
         hw = requests.post(self.get_url('/login'), json={
             "email": f"{self.existing_user}",
             "password": "132"
@@ -484,6 +485,7 @@ class ServerTest(FlaskTest):
         headers = {'Authorization': f'Bearer {token}'}
 
         hw = requests.get(self.get_url(f'/users?email={new_email}'))
+        user_id = hw.json().get('user_id')
         hw = requests.post(self.get_url('/access'), json={
             "user_id": hw.json().get('user_id'),
             "list_id": created_list_id
@@ -494,9 +496,20 @@ class ServerTest(FlaskTest):
         if hw.status_code != 200:
             return wrong('after sharing user with access should be able to read shared list')
 
+        hw = requests.delete(self.get_url('/access'), json={
+            "user_id": user_id,
+            "list_id": created_list_id
+        }, headers=strong_headers)
+        print('hwasd', hw.json())
+        hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
+
+        if hw.status_code != 403:
+            return wrong('after sharing and unsharing user without access should not be able to read list')
+
         return correct()
 
     # unshare no right
+    @dynamic_test
     def test_revoke_read_access_no_right_to_share_403(self):
         hw = requests.post(self.get_url('/login'), json={
             "email": f"{self.existing_user}",
@@ -640,7 +653,7 @@ class ServerTest(FlaskTest):
 
     # read list no access
     @dynamic_test
-    def test_post_append_201(self):
+    def test_read_list_403(self):
         hw = requests.post(self.get_url('/login'), json={
             "email": f"{self.existing_user}",
             "password": "132"

@@ -121,13 +121,15 @@ def get_user_id(email):
 
 def get_list_id(task_id):
     task: Tasks = Tasks.query.filter(Tasks.id == task_id).first()
+    if not task:
+        return None
     return task.list_id
 
 
 def check_list_access(list_id, user_id):
     todo_list: TODOlists = TODOlists.query.filter(TODOlists.id == list_id).first()
     if not todo_list:
-        raise Exception(f'no list with id {list_id}')
+        return False
     return todo_list.user_id == user_id
 
 
@@ -188,8 +190,8 @@ def create_new_list():
         list_id = new_list.id
 
     elif not check_list_access(
-        list_id=list_id,
-        user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id
+            list_id=list_id,
+            user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id
     ):
         return {"error": "no access"}, 403
 
@@ -208,9 +210,9 @@ def create_new_list():
 @jwt_required()
 def get_entry(todo_id: int):
     list_id = get_list_id(task_id=todo_id)
-    if not check_list_access(
-        list_id=list_id,
-        user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id
+    if not list_id or not check_list_access(
+            list_id=list_id,
+            user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id
     ):
         return {"error": "no access"}, 403
     todo = Tasks.query.get(todo_id)
@@ -234,8 +236,10 @@ def change_entry():
         return {"error": err.messages}, 422
 
     list_id = get_list_id(task_id=todo.get('id'))
-    if not check_list_access(list_id=list_id,
-                             user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id):
+    if not list_id or check_list_access(
+            list_id=list_id,
+            user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id
+    ):
         return {"error": "no access"}, 403
 
     todo_object: Tasks = Tasks.query.filter(Tasks.id == todo.get('id')).first()
@@ -245,14 +249,22 @@ def change_entry():
 
 
 @app.route('/tasks', methods=['DELETE'])
-def change_entry():
+@jwt_required()
+def delete_entry():
     if 'task_id' not in request.args:
         return {"error": "no task_id param passed"}, 400
 
-    task_is = request.args.get('task_id')
-    Tasks.query.get(task_is).delete()
+    task_id = request.args.get('task_id')
+    list_id = get_list_id(task_id=task_id)
+    if not list_id or not check_list_access(
+            list_id=list_id,
+            user_id=Users.query.filter(Users.email == get_jwt().get('sub')).first().id
+    ):
+        return {"error": "no access"}, 403
+
+    Tasks.query.filter_by(id=task_id).delete()
     db.session.commit()
-    return {'task_id': task_is}
+    return {'task_id': task_id}
 
 
 @app.route('/lists/<list_id>', methods=['GET'])
