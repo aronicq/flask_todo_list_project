@@ -123,7 +123,7 @@ class ServerTest(FlaskTest):
         if hw.status_code != 422:
             return wrong('Response code of wrong schema for POST method should be 422')
 
-        if not {'title', 'deadline_time', 'is_completed'} - set(hw.json().get('error')):
+        if {'title', 'description', 'deadline_time', 'is_completed'}.difference(set(hw.json().get('error'))):
             return wrong('response message should provide missing or incorrect fields title, deadline_time, is_completed')
 
         return correct()

@@ -72,7 +72,7 @@ def register():
         user = create_and_save_new_user(data)
         message = f"Successfully created user: {user.email}"
     else:
-        return {"error": "That email address is already in the database"}, 400
+        return {"error": 'email address is already in use'}, 400
 
     data = user_schema_out.dump(user)
     data["message"] = message
