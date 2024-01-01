@@ -96,7 +96,7 @@ def login():
         return {"error": logged_in}, 401
 
     token = create_access_token(user.email)
-    return jsonify(access_token=token), 200
+    return jsonify(access_token='token'), 200
 
 
 @app.route('/current')

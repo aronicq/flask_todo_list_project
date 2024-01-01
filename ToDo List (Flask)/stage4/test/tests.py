@@ -22,7 +22,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 201:
             return wrong('Response code of successful POST method should be 201')
@@ -71,7 +71,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 201:
             return wrong('Response code of successful POST method should be 201')
@@ -109,7 +109,18 @@ class ServerTest(FlaskTest):
 
         hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
 
-        if len(hw.json().get('todo_list')) != 1:
+        try:
+            json.loads(hw.content)
+        except Exception:
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
+
+        if hw.status_code != 200:
+            return wrong('Response code of successful GET method should be 200')
+
+        if 'list' not in hw.json():
+            return wrong('Response for GET request on "/lists/<id>" should contain field "list" with tasks from list with requested id')
+
+        if len(hw.json().get('list')) != 1:
             return wrong('Number of created elements in list is not correct')
 
         return correct()
@@ -190,7 +201,7 @@ class ServerTest(FlaskTest):
         created_list_id = hw.json().get('created_list_id')
         hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
 
-        if len(hw.json().get('todo_list')) != 1:
+        if len(hw.json().get('list')) != 1:
             return wrong('Wrong list length')
 
         hw: Response = requests.post(
@@ -223,7 +234,7 @@ class ServerTest(FlaskTest):
         created_list_id = hw.json().get('created_list_id')
         hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
 
-        if len(hw.json().get('todo_list')) != 4:
+        if len(hw.json().get('list')) != 4:
             return wrong('Wrong list length')
         return correct()
 
@@ -266,14 +277,14 @@ class ServerTest(FlaskTest):
         created_list_id = hw.json().get('created_list_id')
 
         hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
-        task_id = hw.json().get('todo_list')[0].get('id')
+        task_id = hw.json().get('list')[0].get('id')
 
         hw: Response = requests.delete(self.get_url(f'/tasks?task_id={task_id}'), headers=headers)
         print(hw.json())
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 200:
             return wrong('Response code of successful DELETE method should be 200')
@@ -286,7 +297,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 403:
             return wrong('Response code of successful POST method should be 201')
@@ -313,7 +324,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 422:
             return wrong('Response code of DELETE method with no passed task_id should be 422')
@@ -353,14 +364,14 @@ class ServerTest(FlaskTest):
         created_list_id = hw.json().get('created_list_id')
 
         hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
-        task_id = hw.json().get('todo_list')[0].get('id')
+        task_id = hw.json().get('list')[0].get('id')
 
         hw: Response = requests.delete(self.get_url(f'/tasks?task_id={task_id + 1}'), headers=headers)
         print(hw.json())
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 403:
             return wrong('Response code of successful DELETE method should be 200')

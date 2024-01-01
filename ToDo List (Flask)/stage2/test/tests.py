@@ -17,7 +17,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 200:
             return wrong('Response code of successful GET method should be 200')
@@ -33,7 +33,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 404:
             return wrong('Response code for not existing task for GET method should be 404')
@@ -56,7 +56,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 201:
             return wrong('Response code of successful POST method should be 201')
@@ -80,8 +80,12 @@ class ServerTest(FlaskTest):
             id=created_id,
             is_completed=True
         ))
+
+        if hw.status_code != 200:
+            return wrong('Response code of successful PUT method should be 200')
+
         if not hw.json().get('task').get('is_completed'):
-            return wrong('completed state should have been changed')
+            return wrong('Completed state should have been changed')
 
         return correct()
 
@@ -118,7 +122,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 422:
             return wrong('Response code of wrong schema for POST method should be 422')
@@ -147,7 +151,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 200:
             return wrong('Response code of successful GET method should be 200')
@@ -169,8 +173,8 @@ class Test(StageTest):
         tables: tuple = con.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchone()
 
         if tables is None:
-            return wrong('Could not read database file.'
-                         'Check if you use database for storage and its placed in special directory')
+            return wrong('''Could not read database file.
+                            Check if you use database for storage and its placed in special directory''')
 
         all_entries = con.execute(f'select * from {tables[0]}').fetchall()
 

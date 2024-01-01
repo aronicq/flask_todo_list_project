@@ -5,6 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, request
 from marshmallow import Schema, fields, ValidationError
 
+
+# Do not change following lines
 app = Flask(import_name='TODO list project')
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///sqlite.db"

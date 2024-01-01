@@ -21,7 +21,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 201:
             return wrong('Response code of successful POST method should be 201')
@@ -46,7 +46,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 400:
             return wrong('Response code of unsuccessful POST method in cause of wring input should be 400')
@@ -69,7 +69,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 200:
             return wrong('Response code of successful login method should be 200')
@@ -80,7 +80,7 @@ class ServerTest(FlaskTest):
         return correct()
 
     @dynamic_test
-    def test_login_wrong_password_400(self):
+    def test_login_wrong_password_401(self):
         hw = requests.post(self.get_url('/login'), json={
             "email": f"{self.existing_user}",
             "password": "1322"
@@ -89,10 +89,10 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 401:
-            return wrong('Response code of successful login method should be 200')
+            return wrong('Response code of successful login method should be 401')
 
         if 'error' not in hw.json():
             return wrong('Login endpoint should return "error" field with error description')
@@ -112,10 +112,10 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 400:
-            return wrong('Response code of successful login method should be 200')
+            return wrong('Response code of successful login method should be 400')
 
         if 'error' not in hw.json():
             return wrong('Login endpoint should return "error" field with error description')
@@ -139,10 +139,13 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
+
+        if hw.status_code == 422:
+            return wrong('Check "access_token" field of "/login" endpoint. It should be a valid JWT token')
 
         if hw.status_code != 200:
-            return wrong('Response code of successful POST method should be 201')
+            return wrong('Response code of successful GET method should be 200')
 
         if 'current_user_email' not in hw.json():
             return wrong('Current endpoint should return "current_user_email" field with token\'s user owner')
@@ -162,7 +165,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 422:
             return wrong(

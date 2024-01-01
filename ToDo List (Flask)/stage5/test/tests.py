@@ -22,7 +22,7 @@ class ServerTest(FlaskTest):
         try:
             json.loads(hw.content)
         except Exception:
-            return wrong(f'Response should be in json format')
+            return wrong(f'Response for {hw.request} on {hw.url} should be in json format')
 
         if hw.status_code != 201:
             return wrong('Response code of successful POST method should be 201')
@@ -500,7 +500,7 @@ class ServerTest(FlaskTest):
             "user_id": user_id,
             "list_id": created_list_id
         }, headers=strong_headers)
-        print('hwasd', hw.json())
+
         hw = requests.get(self.get_url(f'/lists/{created_list_id}'), headers=headers)
 
         if hw.status_code != 403:
